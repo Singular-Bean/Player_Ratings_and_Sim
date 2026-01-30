@@ -116,7 +116,7 @@ Match performances for Erling Haaland:
 9.87 vs Wolverhampton (away) - 73'
 ```
 
-Something I have noticed about the total averages is that the model seems to favour players with lots of defensive contributions (generally center backs for mid-to-lower-table teams) and attacking players who are likely to be the sole outlet for their team (generally midfielders for mid-table teams). This means that the average ratings are a mix of players from all types of teams:
+Something I have noticed about the total averages is that the model seems to favour players with lots of defensive contributions (generally center backs for mid-to-lower-table teams) and attacking players who are likely to be the sole outlet for their team (generally midfielders for mid-table teams). This means that the highest average ratings contain a mix of players from all types of teams (below are just the top 20):
 ```
 Num   Player Name               | Rating | Std Dev | Matches
 1.    Maxence Lacroix           | 6.2260 | 1.1684  | 23
