@@ -90,6 +90,17 @@ def deleteSeason(leagueId, seasonId):
                 print(f"Error deleting {fileName}: {e}")
 
 
+def balanceDataset(df):
+    # This keeps the original number of players per position
+    # but ensures a 50/50 overperform split WITHIN each position
+    def sampleGroup(group):
+        # Find the smaller count between overperform 0 and 1 for THIS position
+        n = group['overperform'].value_counts().min()
+        return group.groupby('overperform').sample(n=n, random_state=42)
+
+    return df.groupby('position', group_keys=False).apply(sampleGroup).sample(frac=1)
+
+
 def isOverperform(oddsData, home=True):
     data = oddsData
     for odds in data:
@@ -403,50 +414,9 @@ combinedDF = pd.concat(
      pd.DataFrame(importJson("data/playerStatsLigue2425.json")).T.fillna(0).infer_objects(copy=False)),
     ignore_index=True
 )
-"""
-combinedDF = pd.concat(
-    (pd.DataFrame(importJson("data/playerStatsTestPrem2223.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestPrem2324.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestPrem2425.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestLaliga2223.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestLaliga2324.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestLaliga2425.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestSerieA2223.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestSerieA2324.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestSerieA2425.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestBunde2223.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestBunde2324.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestBunde2425.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestLigue2223.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestLigue2324.json")).T.fillna(0).infer_objects(copy=False),
-     pd.DataFrame(importJson("data/playerStatsTestLigue2425.json")).T.fillna(0).infer_objects(copy=False)),
-    ignore_index=True
-)
 
-# 1. Generate the confusion matrix
-# 'favourite' acts as our "prediction" and 'overperform' as the "actual"
-cm = confusion_matrix(combinedDF['overperform'], combinedDF['favourite'])
-
-# 2. Plot the matrix for better visualization
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['No', 'Yes'])
-
-# Use a clean plot style
-fig, ax = plt.subplots(figsize=(8, 6))
-disp.plot(cmap='Blues', ax=ax)
-
-plt.title('Confusion Matrix: Favourite vs Overperformance')
-plt.xlabel('Is Favourite')
-plt.ylabel('Did Overperform')
-plt.show()
-
-# 3. Optional: Print the raw numbers
-tn, fp, fn, tp = cm.ravel()
-print(f"True Negatives (Not Fav & Didn't Overperform): {tn}")
-print(f"False Positives (Fav & Didn't Overperform): {fp}")
-print(f"False Negatives (Not Fav & Did Overperform): {fn}")
-print(f"True Positives (Fav & Did Overperform): {tp}")
-"""
 includedColumns = list(combinedDF.columns)
+includedColumns.remove('goodHighClaim')
 #includedColumns.remove('favourite')
 
 includeGoals = input("Remove goals? (y/n): ") == 'n'
@@ -554,15 +524,30 @@ def trainModel(dfOG, matchColumns=defaultColumns):
         df['position'] = df['position'].map(positionsKey)
         testingDf['position'] = testingDf['position'].map(positionsKey)
 
+    raw_weights = df.groupby(['position', 'overperform'])['overperform'].transform(lambda x: 1.0 / len(x))
+
+    # 2. Normalize them so the average weight is 1.0
+    # This prevents the "vanishing gradient" problem while keeping the 50/50 balance
+    weights = raw_weights * (len(df) / raw_weights.sum())
+
     X = df[matchColumns]
     y = df['overperform']
+
+    print(f"Trained on {len(X)} matches")
 
     X_test = testingDf[matchColumns]
     y_test = testingDf['overperform']
 
-    model = XGBClassifier(eval_metric='logloss', random_state=42)
+    model = XGBClassifier(
+        tree_method='hist',
+        growth_policy='lossguide',
+        max_leaves=63,
+        max_depth=0,
+        eval_metric='logloss',
+        random_state=42
+    )
 
-    model.fit(X, y)
+    model.fit(X, y, sample_weight=weights)
 
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)

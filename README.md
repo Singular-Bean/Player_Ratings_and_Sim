@@ -92,91 +92,91 @@ The first option gets all the matches from a season, returns the average rating 
 ```
 Match performances for Erling Haaland:
 
-2.81 vs Manchester United (away) - 80'
-6.03 vs Brighton & Hove Albion (home) - 90'
-2.92 vs Chelsea (home) - 90'
-1.78 vs Sunderland (away) - 90'
-2.28 vs Nottingham Forest (away) - 90'
-7.73 vs West Ham United (home) - 90'
-9.76 vs Crystal Palace (away) - 89'
-2.86 vs Sunderland (home) - 69'
-6.37 vs Fulham (away) - 90'
-4.99 vs Leeds United (home) - 90'
-3.17 vs Newcastle United (away) - 90'
-3.52 vs Liverpool (home) - 90'
-9.67 vs Bournemouth (home) - 82'
-1.92 vs Aston Villa (away) - 90'
-8.66 vs Everton (home) - 90'
-3.47 vs Brentford (away) - 90'
-9.62 vs Burnley (home) - 90'
-8.01 vs Arsenal (away) - 76'
-9.92 vs Manchester United (home) - 87'
-5.25 vs Brighton & Hove Albion (away) - 90'
-5.03 vs Tottenham Hotspur (home) - 90'
-9.87 vs Wolverhampton (away) - 73'
+3.59 vs Tottenham Hotspur (away) - 90'
+4.53 vs Manchester United (away) - 80'
+3.11 vs Brighton & Hove Albion (home) - 90'
+3.37 vs Chelsea (home) - 90'
+2.17 vs Sunderland (away) - 90'
+3.26 vs Nottingham Forest (away) - 90'
+9.25 vs West Ham United (home) - 90'
+9.81 vs Crystal Palace (away) - 89'
+2.84 vs Sunderland (home) - 69'
+7.36 vs Fulham (away) - 90'
+4.32 vs Leeds United (home) - 90'
+3.09 vs Newcastle United (away) - 90'
+3.47 vs Liverpool (home) - 90'
+9.85 vs Bournemouth (home) - 82'
+3.03 vs Aston Villa (away) - 90'
+8.76 vs Everton (home) - 90'
+2.85 vs Brentford (away) - 90'
+9.45 vs Burnley (home) - 90'
+8.39 vs Arsenal (away) - 76'
+9.90 vs Manchester United (home) - 87'
+3.35 vs Brighton & Hove Albion (away) - 90'
+5.59 vs Tottenham Hotspur (home) - 90'
+9.94 vs Wolverhampton (away) - 73'
 ```
 
 Something I have noticed about the total averages is that the model seems to favour players with lots of defensive contributions (generally center backs for mid-to-lower-table teams) and attacking players who are likely to be the sole outlet for their team (generally midfielders for mid-table teams). This means that the highest average ratings contain a mix of players from all types of teams (below are just the top 20):
 ```
 Num   Player Name               | Rating | Std Dev | Matches
-1.    Maxence Lacroix           | 6.2260 | 1.1684  | 23
-2.    Daniel Muñoz              | 6.2248 | 1.3357  | 15
-3.    Dango Ouattara            | 6.2014 | 1.8185  | 15
-4.    Enzo Fernández            | 6.1715 | 1.4003  | 22
-5.    Brenden Aaronson          | 6.0841 | 2.0361  | 20
-6.    Declan Rice               | 6.0717 | 1.4393  | 22
-7.    Maxime Estève             | 6.0395 | 1.2631  | 19
-8.    Antoine Semenyo           | 6.0096 | 1.9278  | 22
-9.    Michael Keane             | 6.0065 | 1.7046  | 19
-10.   Bruno Fernandes           | 5.9527 | 1.4750  | 20
-11.   Hugo Ekitiké              | 5.8867 | 2.3607  | 18
-12.   Nikola Milenković         | 5.8818 | 1.4215  | 23
-13.   Ryan Gravenberch          | 5.8805 | 1.3914  | 21
-14.   Tijjani Reijnders         | 5.8760 | 1.6797  | 18
-15.   Iliman Ndiaye             | 5.8750 | 2.0581  | 17
-16.   Bruno Guimarães           | 5.8567 | 1.5614  | 21
-17.   Hjalmar Ekdal             | 5.8481 | 1.1556  | 13
-18.   Santiago Bueno            | 5.8449 | 1.2323  | 14
-19.   Jérémy Doku               | 5.8319 | 2.1749  | 17
-20.   Wesley Fofana             | 5.8248 | 1.5670  | 11
+1.    Declan Rice               | 6.4865 | 1.4882  | 22
+2.    Dango Ouattara            | 6.3435 | 2.0210  | 16
+3.    Brenden Aaronson          | 6.3432 | 1.9681  | 20
+4.    Daniel Muñoz              | 6.3299 | 1.5000  | 16
+5.    Maxence Lacroix           | 6.2928 | 1.1221  | 24
+6.    Ryan Gravenberch          | 6.1780 | 1.2554  | 21
+7.    Antoine Semenyo           | 6.1256 | 1.9233  | 23
+8.    Bruno Guimarães           | 6.1159 | 1.6425  | 21
+9.    Marcus Tavernier          | 6.0750 | 1.8383  | 22
+10.   Bruno Fernandes           | 6.0734 | 1.5544  | 21
+11.   Michael Keane             | 6.0656 | 1.5831  | 20
+12.   Iliman Ndiaye             | 6.0534 | 1.6420  | 18
+13.   Nikola Milenković         | 6.0384 | 1.2306  | 24
+14.   Enzo Fernández            | 6.0337 | 1.6567  | 22
+15.   Hjalmar Ekdal             | 6.0279 | 1.0785  | 13
+16.   Maxime Estève             | 6.0136 | 1.2804  | 19
+17.   Tomáš Souček              | 5.9654 | 1.9775  | 14
+18.   Rúben Dias                | 5.9500 | 1.1058  | 19
+19.   Trevoh Chalobah           | 5.9482 | 1.5400  | 22
+20.   Kevin Schade              | 5.9356 | 1.9327  | 23
 ```
 The second choice gives the user the option to get the ratings for a single match. An example output is shown below:
 ```
 Player Name               | Rating
 ------------Home Team:------------
-Jurriën Timber            | 4.37
-William Saliba            | 5.02
-Gabriel Magalhães         | 5.30
-Piero Hincapié            | 3.78
-Martin Ødegaard           | 2.74
-Martín Zubimendi          | 2.30
-Declan Rice               | 5.70
-Bukayo Saka               | 3.69
-Gabriel Jesus             | 4.40
-Leandro Trossard          | 4.10
-Ben White                 | 3.52
-Mikel Merino              | 6.47
-Eberechi Eze              | 3.89
-Viktor Gyökeres           | 2.24
+Jurriën Timber            | 5.08
+William Saliba            | 4.82
+Gabriel Magalhães         | 5.34
+Piero Hincapié            | 3.19
+Martin Ødegaard           | 4.30
+Martín Zubimendi          | 2.71
+Declan Rice               | 4.91
+Bukayo Saka               | 3.31
+Gabriel Jesus             | 3.73
+Leandro Trossard          | 4.50
+Ben White                 | 4.03
+Mikel Merino              | 6.74
+Eberechi Eze              | 3.29
+Viktor Gyökeres           | 2.60
 ------------Away Team:------------
-Diogo Dalot               | 4.04
-Harry Maguire             | 7.03
-Lisandro Martínez         | 2.80
-Luke Shaw                 | 5.07
-Casemiro                  | 6.73
-Kobbie Mainoo             | 4.17
-Amad Diallo               | 4.53
-Bruno Fernandes           | 7.08
-Patrick Dorgu             | 7.81
-Bryan Mbeumo              | 7.72
-Matheus Cunha             | 7.28
+Diogo Dalot               | 3.84
+Harry Maguire             | 7.07
+Lisandro Martínez         | 1.56
+Luke Shaw                 | 5.12
+Casemiro                  | 6.61
+Kobbie Mainoo             | 4.16
+Amad Diallo               | 4.49
+Bruno Fernandes           | 4.56
+Patrick Dorgu             | 7.94
+Bryan Mbeumo              | 8.30
+Matheus Cunha             | 6.91
 ```
 
 Again, the players shown are only the ones who played 20 minutes or more in the match. I personally believe that viewing the ratings of a whole match is when the model works best.
 
 The program then gives the user the option to see the model's explanation for any particular player rating. This is done by using the SHAP library. An example of the explanation for a player's rating (Bruno Fernandes) is shown below:
-
-![img_2.png](img_2.png)
+![img_5.png](img_5.png)
 
 I'm not entirely convinced that this is the best way to explain the model's reasoning because it inevitably uses a combination of factors to make decisions (not simply "he made two key passes so add 0.05"), but it's a good starting point and it's cool to look at.
 
