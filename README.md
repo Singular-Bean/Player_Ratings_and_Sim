@@ -184,6 +184,39 @@ Choosing the third option does the same thing as the second one but it doesn't s
 
 I mentioned earlier that the model does some unfavourable things when minutes played is very low. I believe that this is because when players have played very little, most of their feature values are zero. This leads the model to focus on non-zero values, the main one being minutes played. The goal of the model was to create some sort of performance metric, and players don't have any control over how long they play. This means that the values for players with low minutes can't fully be trusted as a legitimate player rating. In addition, when defensive players have played for only 1-4ish minutes, the model gives them an artificially high rating. My only explanation for this is that teams only really make late defensive substitutions if they are happy with the current result, so they are likely to get a good result from the match.
 
+I ran a test where I removed minutes played from the category selection and ran the model otherwise the same. The model is now slightly less accurate (worse at predicting the outcome of a match) but it produces results I am happier with.
+
+I have also added a feature where you can see what the model likes and dislikes about a selected player. This is also done using the SHAP library. An example of the output is shown below:
+![img_6.png](img_6.png)
+
+This was what helped me decide to remove minutes played from the model. I saw that for some players the minutes played was one of the most important features, and that wasn't something I really wanted.
+
+These changes mean that the league average ratings have changed, so below are the new top 20:
+
+```
+Num   Player Name               | Rating | Std Dev | Matches
+1.    Erling Haaland            | 6.8550 | 2.3440  | 23
+2.    Declan Rice               | 6.4139 | 1.5030  | 23
+3.    Antoine Semenyo           | 6.3417 | 1.8789  | 23
+4.    Maxence Lacroix           | 6.3343 | 1.0646  | 23
+5.    Igor Thiago               | 6.3327 | 2.0081  | 24
+6.    Enzo Fernández            | 6.3152 | 1.6286  | 23
+7.    Richarlison               | 6.2909 | 1.6245  | 16
+8.    Rayan Cherki              | 6.1871 | 2.1013  | 13
+9.    Daniel Muñoz              | 6.1819 | 1.4033  | 16
+10.   Ismaïla Sarr              | 6.1263 | 1.1512  | 14
+11.   Jaka Bijol                | 6.0989 | 1.0952  | 12
+12.   Trevoh Chalobah           | 6.0692 | 1.4210  | 23
+13.   Jean-Philippe Mateta      | 6.0569 | 1.8235  | 22
+14.   Dominic Calvert-Lewin     | 6.0199 | 1.8881  | 20
+15.   Amad Diallo               | 6.0051 | 1.6825  | 18
+16.   Ryan Gravenberch          | 5.9976 | 1.3329  | 22
+17.   Hjalmar Ekdal             | 5.9671 | 0.8710  | 13
+18.   Kevin Schade              | 5.9395 | 1.6883  | 23
+19.   Michael Keane             | 5.9197 | 1.5820  | 20
+20.   Bruno Fernandes           | 5.8774 | 1.4591  | 21
+```
+
 ## Passing Sequences:
 
 I made this program because I noticed that for every goal that's scored in selected leagues, SofaScore has a feature where they display the passing sequence leading up to it. Using this, I created a dataframe where each entry was one of the events that ended up being a goal. It contains information about the position of the player, what type of action it was (pass, dribble, shot), and where the ball ended up.

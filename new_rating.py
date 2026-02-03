@@ -417,6 +417,7 @@ combinedDF = pd.concat(
 
 includedColumns = list(combinedDF.columns)
 includedColumns.remove('goodHighClaim')
+includedColumns.remove('minutesPlayed')
 #includedColumns.remove('favourite')
 
 includeGoals = input("Remove goals? (y/n): ") == 'n'
@@ -1086,6 +1087,19 @@ def getLeagueAverageRatings():
     print(f"Match performances for {selectedName}:\n")
     for match in playerMatches:
         print(f"{match[2]:.2f} vs {match[4]} ({match[3]}) - {match[6]}'")
+
+    # SHAP Explainer for the selected player's matches
+    player_indices = seasonDf.index.str.endswith(f"-->{selectedName}")
+    player_data = seasonDf[player_indices]
+
+    explainer = shap.TreeExplainer(model, data=X, model_output='probability')
+    shap_values = explainer.shap_values(player_data)
+
+    plt.figure()
+    shap.summary_plot(shap_values, player_data, show=False)
+    plt.title(f"SHAP Summary for {selectedName}")
+    plt.show()
+
     return filteredList
 
 #deleteSeason(17, 76986)
