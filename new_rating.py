@@ -1,18 +1,19 @@
-from matplotlib.style.core import available
-from collections import Counter
 from functions_store import *
 import datetime
 import numpy as np
 import pandas as pd
 import shap
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.ensemble import BaggingClassifier
 import requests
 import socket
+import joblib
+from matplotlib.style.core import available
+from collections import Counter
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import BaggingClassifier
 import statsmodels
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
@@ -61,6 +62,8 @@ defaultColumns = ['totalPass', 'accuratePass', 'totalLongBalls', 'accurateOwnHal
                   'onTargetScoringAttempt', 'totalOffside', 'goals',
                   'clearanceOffLine', 'hitWoodwork', 'penaltyWon', 'penaltyConceded',
                   'lastManTackle', 'errorLeadToAShot', 'penaltyMiss']
+
+model2Columns = ['accuratePass', 'accurateLongBalls', 'accurateOwnHalfPasses', 'accurateOppositionHalfPasses', 'aerialLost', 'aerialWon', 'duelLost', 'duelWon', 'onTargetScoringAttempt', 'interceptionWon', 'ballRecovery', 'wonTackle', 'unsuccessfulTouch', 'fouls', 'touches', 'possessionLostCtrl', 'expectedGoals', 'expectedGoalsOnTarget', 'expectedAssists', 'keyPass', 'isSub', 'yellowCard', 'redCard', 'penaltyScored', 'position', 'inaccuratePass', 'passSuccess', 'inaccurateLongBalls', 'longBallSuccess', 'inaccurateOwnHalfPasses', 'ownHalfPassSuccess', 'inaccurateOppositionHalfPasses', 'oppositionHalfPassSuccess', 'inaccurateCross', 'crossSuccess', 'offTargetScoringAttempt', 'onTargetSuccess', 'lostTackle', 'tackleSuccess', 'lostContest', 'contestSuccess', 'totalClearance', 'challengeLost', 'outfielderBlock', 'wasFouled', 'dispossessed', 'bigChanceMissed', 'shotOffTarget', 'blockedScoringAttempt', 'wonContest', 'accurateCross', 'bigChanceCreated', 'totalOffside', 'ownGoals', 'errorLeadToAShot', 'goals', 'penaltyWon', 'hitWoodwork', 'lastManTackle', 'penaltyConceded', 'penaltyMiss', 'clearanceOffLine']
 
 
 
@@ -943,7 +946,7 @@ def checkStats(leagueId, seasonId, statCategories=defaultColumns):
                             newStats.append(key)
     return newStats, categoriesCopy
 
-def getLeagueAverageRatings():
+def getLeagueAverageRatings(residuals=False):
     leagueShortName = input("Enter the league name ")
     data = jsonRequest(f"http://www.sofascore.com/api/v1/search/unique-tournaments?q={leagueShortName}&page=0")['results']
     count = 0
@@ -978,6 +981,7 @@ def getLeagueAverageRatings():
     model, X, X_test = trainModel(combinedDF, categories)
     total = {}
     names = []
+    print(categories)
 
     for matchId in matchIds:
         lineups = jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}/lineups", 0)
@@ -1020,74 +1024,155 @@ def getLeagueAverageRatings():
     seasonDf['position'] = seasonDf['position'].map(positionsKey)
     seasonDf = seasonDf.apply(pd.to_numeric, errors='coerce').fillna(0)
     ratingsDict = {}
+    residualsDict = {}
     uniqueNames = list(set(names))
     for name in uniqueNames:
         ratingsDict[name] = []
+        residualsDict[name] = []
 
-    ratings = np.array(model.predict_proba(seasonDf))
-    indexList = seasonDf.index.tolist()
-    matchIdAndNames = []
-    for index in indexList:
-        matchIdAndNames.append(index.split("-->"))
-    for y in range(len(matchIdAndNames)):
-        matchIdAndNames[y].append(ratings[y][1] * 10)
-    #print(sorted(matchIdAndNames, key=lambda x: x[2], reverse=True))
-    for x in range(len(names)):
-        ratingsDict[names[x]].append(ratings[x][1])
-    for name in uniqueNames:
-        ratingsDict[name] = (np.mean(ratingsDict[name]), len(ratingsDict[name]), np.std(ratingsDict[name]))
-    ratingsList = list(ratingsDict.items())
-    ratingsList = sorted(ratingsList, key=lambda x: x[1][0], reverse=True)
-    filteredList = [item for item in ratingsList if item[1][1] > 9]
-    print(f"\nNum   {'Player Name':<25} | {'Rating':<6} | {'Std Dev':<7} | Matches")
-    for x in range(len(filteredList)):
-        print(f"{str(x+1)+'.':<5} {filteredList[x][0]:<25} | {filteredList[x][1][0]*10:.4f} | {filteredList[x][1][2]*10:<7.4f} | {filteredList[x][1][1]:<2}")
-    choice = int(input("\nWhich number player would you like to see matches for? ")) - 1
-    selectedName = filteredList[choice][0]
-    playerId = jsonRequest(f"http://www.sofascore.com/api/v1/search/player-team-persons?q={selectedName}&page=0")['results'][0]['entity']['id']
-    playerMatches = []
-    for index in matchIdAndNames:
-        if index[1] == selectedName:
-            playerMatches.append(index)
-    switch = True
-    count = 0
-    playedForTeamMap = {}
-    while switch:
-        playedMatches = jsonRequest(f"http://www.sofascore.com/api/v1/player/{playerId}/unique-tournament/{leagueId}/events/last/{count}")
-        playedForTeamMap.update(playedMatches['playedForTeamMap'])
-        count += 1
-        switch = playedMatches['hasNextPage']
-    for playerMatch in playerMatches:
-        matchId = playerMatch[0]
-        playedForTeam = playedForTeamMap[matchId]
-        matchInfo = jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}")['event']
-        if matchInfo['status']['code'] == 100:
-            if matchInfo['homeTeam']['id'] == playedForTeam:
-                venue = 'home'
-                opposition = matchInfo['awayTeam']['name']
-            elif matchInfo['awayTeam']['id'] == playedForTeam:
-                venue = 'away'
-                opposition = matchInfo['homeTeam']['name']
-            else:
-                break
+    if sorted(categories) != sorted(model2Columns):
+        residuals = False
+    if residuals == False:
+        ratings = np.array(model.predict_proba(seasonDf))
+        indexList = seasonDf.index.tolist()
+        matchIdAndNames = []
+        for index in indexList:
+            matchIdAndNames.append(index.split("-->"))
+        for y in range(len(matchIdAndNames)):
+            matchIdAndNames[y].append(ratings[y][1] * 10)
+        #print(sorted(matchIdAndNames, key=lambda x: x[2], reverse=True))
+        for x in range(len(names)):
+            ratingsDict[names[x]].append(ratings[x][1])
+        for name in uniqueNames:
+            ratingsDict[name] = (np.mean(ratingsDict[name]), len(ratingsDict[name]), np.std(ratingsDict[name]))
+        ratingsList = list(ratingsDict.items())
+        ratingsList = sorted(ratingsList, key=lambda x: x[1][0], reverse=True)
+        filteredList = [item for item in ratingsList if item[1][1] > 9]
+        print(f"\nNum   {'Player Name':<25} | {'Rating':<6} | {'Std Dev':<7} | Matches")
+        for x in range(len(filteredList)):
+            print(f"{str(x+1)+'.':<5} {filteredList[x][0]:<25} | {filteredList[x][1][0]*10:.4f} | {filteredList[x][1][2]*10:<7.4f} | {filteredList[x][1][1]:<2}")
+        choice = int(input("\nWhich number player would you like to see matches for? ")) - 1
+        selectedName = filteredList[choice][0]
+        playerId = jsonRequest(f"http://www.sofascore.com/api/v1/search/player-team-persons?q={selectedName}&page=0")['results'][0]['entity']['id']
+        playerMatches = []
+        for index in matchIdAndNames:
+            if index[1] == selectedName:
+                playerMatches.append(index)
+        switch = True
+        count = 0
+        playedForTeamMap = {}
+        while switch:
+            playedMatches = jsonRequest(f"http://www.sofascore.com/api/v1/player/{playerId}/unique-tournament/{leagueId}/events/last/{count}")
+            playedForTeamMap.update(playedMatches['playedForTeamMap'])
+            count += 1
+            switch = playedMatches['hasNextPage']
+        for playerMatch in playerMatches:
+            matchId = playerMatch[0]
+            playedForTeam = playedForTeamMap[matchId]
+            matchInfo = jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}")['event']
+            if matchInfo['status']['code'] == 100:
+                if matchInfo['homeTeam']['id'] == playedForTeam:
+                    venue = 'home'
+                    opposition = matchInfo['awayTeam']['name']
+                elif matchInfo['awayTeam']['id'] == playedForTeam:
+                    venue = 'away'
+                    opposition = matchInfo['homeTeam']['name']
+                else:
+                    break
 
-            minutesPlayed = 0
-            for player in jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}/lineups", 0)[venue]['players']:
-                if player['player']['id'] == playerId and 'statistics' in player:
-                    if 'minutesPlayed' in player['statistics']:
-                        minutesPlayed = player['statistics']['minutesPlayed']
+                minutesPlayed = 0
+                for player in jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}/lineups", 0)[venue]['players']:
+                    if player['player']['id'] == playerId and 'statistics' in player:
+                        if 'minutesPlayed' in player['statistics']:
+                            minutesPlayed = player['statistics']['minutesPlayed']
 
 
-            time = matchInfo['startTimestamp']
-            playerMatch.append(venue)
-            playerMatch.append(opposition)
-            playerMatch.append(time)
-            playerMatch.append(minutesPlayed)
-    playerMatches = sorted(playerMatches, key=lambda x: x[5], reverse=True)
-    print(f"Match performances for {selectedName}:\n")
-    for match in playerMatches:
-        print(f"{match[2]:.2f} vs {match[4]} ({match[3]}) - {match[6]}'")
+                time = matchInfo['startTimestamp']
+                playerMatch.append(venue)
+                playerMatch.append(opposition)
+                playerMatch.append(time)
+                playerMatch.append(minutesPlayed)
+        playerMatches = sorted(playerMatches, key=lambda x: x[5], reverse=True)
+        print(f"Match performances for {selectedName}:\n")
+        for match in playerMatches:
+            print(f"{match[2]:.2f} vs {match[4]} ({match[3]}) - {match[6]}'")
+    else:
+        model2 = joblib.load('models/residual_estimate.pkl')
+        ratings = np.array(model.predict_proba(seasonDf))
+        residualRatings = np.array(model2.predict(seasonDf.reindex(columns=model2Columns)))
+        indexList = seasonDf.index.tolist()
+        matchIdAndNames = []
+        for index in indexList:
+            matchIdAndNames.append(index.split("-->"))
+        for y in range(len(matchIdAndNames)):
+            matchIdAndNames[y].append(ratings[y][1] * 10)
+            matchIdAndNames[y].append(residualRatings[y])
+        # print(sorted(matchIdAndNames, key=lambda x: x[2], reverse=True))
+        for x in range(len(names)):
+            ratingsDict[names[x]].append(ratings[x][1])
+            residualsDict[names[x]].append(residualRatings[x])
+        for name in uniqueNames:
+            ratingsDict[name] = (np.mean(ratingsDict[name]), len(ratingsDict[name]), np.std(ratingsDict[name]), np.mean(residualsDict[name]))
+            ratingsDict[name] = list(ratingsDict[name])
+            ratingsDict[name].append((ratingsDict[name][0]*10 + ratingsDict[name][3])/2)
+            ratingsDict[name] = tuple(ratingsDict[name])
+        ratingsList = list(ratingsDict.items())
+        sort = int(input("\nWhat would you like to sort the list by?\n1. Effectiveness Rating\n2. Residual Rating\n3. A combination of both\n"))
+        sort = {1: 0, 2: 3, 3: 4}[sort]
+        ratingsList = sorted(ratingsList, key=lambda x: x[1][sort], reverse=True)
+        filteredList = [item for item in ratingsList if item[1][1] > 9]
+        print(f"\nNum   {'Player Name':<25} | {'Rating':<6} | {'Std Dev':<7} | {'Residual':<8} | Matches")
+        for x in range(len(filteredList)):
+            print(
+                f"{str(x + 1) + '.':<5} {filteredList[x][0]:<25} | {filteredList[x][1][0] * 10:.4f} | {filteredList[x][1][2] * 10:<7.4f} | {filteredList[x][1][3]:<8.4f} | {filteredList[x][1][1]:<2}")
+        choice = int(input("\nWhich number player would you like to see matches for? ")) - 1
+        selectedName = filteredList[choice][0]
+        playerId = \
+        jsonRequest(f"http://www.sofascore.com/api/v1/search/player-team-persons?q={selectedName}&page=0")['results'][
+            0]['entity']['id']
+        playerMatches = []
+        for index in matchIdAndNames:
+            if index[1] == selectedName:
+                playerMatches.append(index)
+        switch = True
+        count = 0
+        playedForTeamMap = {}
+        while switch:
+            playedMatches = jsonRequest(
+                f"http://www.sofascore.com/api/v1/player/{playerId}/unique-tournament/{leagueId}/events/last/{count}")
+            playedForTeamMap.update(playedMatches['playedForTeamMap'])
+            count += 1
+            switch = playedMatches['hasNextPage']
+        for playerMatch in playerMatches:
+            matchId = playerMatch[0]
+            playedForTeam = playedForTeamMap[matchId]
+            matchInfo = jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}")['event']
+            if matchInfo['status']['code'] == 100:
+                if matchInfo['homeTeam']['id'] == playedForTeam:
+                    venue = 'home'
+                    opposition = matchInfo['awayTeam']['name']
+                elif matchInfo['awayTeam']['id'] == playedForTeam:
+                    venue = 'away'
+                    opposition = matchInfo['homeTeam']['name']
+                else:
+                    break
 
+                minutesPlayed = 0
+                for player in jsonRequest(f"http://www.sofascore.com/api/v1/event/{matchId}/lineups", 0)[venue][
+                    'players']:
+                    if player['player']['id'] == playerId and 'statistics' in player:
+                        if 'minutesPlayed' in player['statistics']:
+                            minutesPlayed = player['statistics']['minutesPlayed']
+
+                time = matchInfo['startTimestamp']
+                playerMatch.append(venue)
+                playerMatch.append(opposition)
+                playerMatch.append(time)
+                playerMatch.append(minutesPlayed)
+        playerMatches = sorted(playerMatches, key=lambda x: x[6], reverse=True)
+        print(f"Match performances for {selectedName}:\n")
+        for match in playerMatches:
+            print(f"{match[2]:.2f} vs {match[5]} ({match[4]}) - {match[7]}' Residual: {match[3]:.2f}")
     # SHAP Explainer for the selected player's matches
     player_indices = seasonDf.index.str.endswith(f"-->{selectedName}")
     player_data = seasonDf[player_indices]
@@ -1107,7 +1192,11 @@ def getLeagueAverageRatings():
 
 choice = int(input("Would you like to:\n1. Get average ratings for a whole season\n2. Get ratings for a whole match\n3. Get one individual player's match rating\n"))
 if choice == 1:
-    getLeagueAverageRatings()
+    choice2 = input("Would you like to see the residual estimate alongside? (y/n)")
+    if choice2 == 'y':
+        getLeagueAverageRatings(residuals=True)
+    else:
+        getLeagueAverageRatings()
 elif choice == 2:
     matchId, model, categories, X, X_test = getAndRateWholeMatch()
     explainPlayer = input("\nWould you like to explain a player's rating? (y/n) ")
